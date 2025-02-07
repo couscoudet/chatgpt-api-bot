@@ -1,11 +1,11 @@
-import React, { useEffect, useState } from 'react';
-import { useStore } from '../store';
-import { ChatInput } from '../components/ChatInput';
-import { Message } from '../components/Message';
-import { ConversationList } from '../components/ConversationList';
-import { useNavigate } from 'react-router-dom';
-import OpenAI from 'openai';
-import { PlusCircle } from 'lucide-react';
+import React, { useEffect, useState } from "react";
+import { useStore } from "../store";
+import { ChatInput } from "../components/ChatInput";
+import { Message } from "../components/Message";
+import { ConversationList } from "../components/ConversationList";
+import { useNavigate } from "react-router-dom";
+import OpenAI from "openai";
+import { PlusCircle } from "lucide-react";
 
 export const Chat: React.FC = () => {
   const navigate = useNavigate();
@@ -22,11 +22,15 @@ export const Chat: React.FC = () => {
 
   useEffect(() => {
     if (!settings.openaiKey) {
-      navigate('/settings');
+      navigate("/settings");
     }
   }, [settings.openaiKey, navigate]);
 
-  const handleSend = async (content: string, files: File[], imageUrl?: string) => {
+  const handleSend = async (
+    content: string,
+    files: File[],
+    imageUrl?: string
+  ) => {
     setLoading(true);
     const openai = new OpenAI({
       apiKey: settings.openaiKey,
@@ -35,27 +39,27 @@ export const Chat: React.FC = () => {
 
     try {
       // Prepare the message content array
-      const contentArray: any[] = [{ type: 'text', text: content }];
-      
+      const contentArray: any[] = [{ type: "text", text: content }];
+
       // Handle uploaded files (base64)
       for (const file of files) {
-        if (file.type.startsWith('image/')) {
+        if (file.type.startsWith("image/")) {
           const base64Image = await new Promise<string>((resolve) => {
             const reader = new FileReader();
             reader.onload = () => {
               const result = reader.result as string;
-              const base64 = result.split(',')[1];
+              const base64 = result.split(",")[1];
               resolve(base64);
             };
             reader.readAsDataURL(file);
           });
-          
+
           contentArray.push({
-            type: 'image_url',
+            type: "image_url",
             image_url: {
               url: `data:${file.type};base64,${base64Image}`,
-              detail: 'auto'
-            }
+              detail: "auto",
+            },
           });
         }
       }
@@ -63,33 +67,33 @@ export const Chat: React.FC = () => {
       // Handle image URL if provided
       if (imageUrl) {
         contentArray.push({
-          type: 'image_url',
+          type: "image_url",
           image_url: {
             url: imageUrl,
-            detail: 'auto'
-          }
+            detail: "auto",
+          },
         });
       }
 
       // Get current conversation messages for context
-      const currentConversationData = currentConversation 
-        ? conversations.find(c => c.id === currentConversation)
+      const currentConversationData = currentConversation
+        ? conversations.find((c) => c.id === currentConversation)
         : null;
 
       // Prepare conversation history
       const conversationHistory = currentConversationData
-        ? currentConversationData.messages.map(msg => ({
+        ? currentConversationData.messages.map((msg) => ({
             role: msg.role,
-            content: msg.content
+            content: msg.content,
           }))
         : [];
 
       // Create user message
       const userMessage = {
-        role: 'user' as const,
+        role: "user" as const,
         content,
-        files: files.map(f => f.name),
-        imageUrl
+        files: files.map((f) => f.name),
+        imageUrl,
       };
 
       // Add message to conversation or create new one
@@ -98,7 +102,7 @@ export const Chat: React.FC = () => {
         const newConversation = {
           id: Date.now().toString(),
           messages: [userMessage],
-          title: content.slice(0, 30) + '...',
+          title: content.slice(0, 30) + "...",
           timestamp: Date.now(),
         };
         addConversation(newConversation);
@@ -113,16 +117,16 @@ export const Chat: React.FC = () => {
         messages: [
           ...conversationHistory,
           {
-            role: 'user',
-            content: settings.model === 'gpt-4-vision-preview' ? contentArray : content
-          }
+            role: "user",
+            content: contentArray,
+          },
         ],
-        max_tokens: settings.model.includes('32k') ? 32000 : 4000,
+        max_tokens: settings.model.includes("32k") ? 32000 : 4000,
       });
 
       const assistantMessage = {
-        role: 'assistant' as const,
-        content: response.choices[0].message.content || '',
+        role: "assistant" as const,
+        content: response.choices[0].message.content || "",
       };
 
       if (conversationId) {
@@ -130,13 +134,15 @@ export const Chat: React.FC = () => {
       }
     } catch (error: any) {
       const errorMessage = {
-        role: 'system' as const,
-        content: `Error: ${error.message || 'Failed to get response from OpenAI'}`,
+        role: "system" as const,
+        content: `Error: ${
+          error.message || "Failed to get response from OpenAI"
+        }`,
       };
       if (currentConversation) {
         addMessage(currentConversation, errorMessage);
       }
-      console.error('Error calling OpenAI:', error);
+      console.error("Error calling OpenAI:", error);
     } finally {
       setLoading(false);
     }
